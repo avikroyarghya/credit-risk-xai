@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  syntax:
+    name: Syntax & structure check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile all Python sources (no deps needed)
+        run: python -m compileall -q src app run_all.py audit.py
+      - name: Expected repo structure present
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          expected = [
+              "src/data_loader.py", "src/preprocessing.py", "src/feature_engineering.py",
+              "src/eda.py", "src/statistical_analysis.py", "src/train.py",
+              "src/evaluate.py", "src/explain.py", "app/app.py",
+              "run_all.py", "audit.py", "requirements.txt", "LICENSE", "README.md",
+          ]
+          missing = [p for p in expected if not Path(p).is_file()]
+          assert not missing, f"missing files: {missing}"
+          print(f"structure OK — {len(expected)} expected files present")
+          PY
+
+  reproduce:
+    name: Full pipeline reproduction + 98-check audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies (CI-trimmed, no jupyterlab or streamlit)
+        run: |
+          grep -vE '^(jupyterlab|streamlit)' requirements.txt > req_ci.txt
+          pip install --upgrade pip
+          pip install -r req_ci.txt
+      - name: Force matplotlib headless backend
+        run: python -c "import matplotlib; matplotlib.use('Agg'); print('Agg OK')"
+      - name: Run the complete 7-stage pipeline (downloads UCI data, ~10 min)
+        run: python run_all.py || python run_all.py  # retry once: UCI mirror flakiness
+      - name: Independent 98-check audit
+        run: python audit.py
+      - name: Upload generated reports + figures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-reports
+          path: |
+            reports/
+            models/metadata.json
+          retention-days: 14

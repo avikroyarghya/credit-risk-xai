@@ -1,0 +1,32 @@
+# Data (regenerated programmatically — see data/README.md)
+data/raw/*
+data/processed/*
+!data/README.md
+
+# Persisted models & reports (reproduce with run_all.py)
+models/*.joblib
+models/metadata.json
+reports/figures/*
+reports/*.csv
+reports/*.json
+reports/*.pkl
+reports/*.txt
+reports/tuning/*
+!reports/figures/.gitkeep
+!reports/tuning/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.ipynb_checkpoints/
+*.egg-info/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
