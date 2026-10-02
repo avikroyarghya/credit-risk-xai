@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Credit Risk Prediction & Explainable AI — Interactive Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+:root {
+  --bg: #f5f8fc; --card: #ffffff; --ink: #142840; --muted: #5a7a96;
+  --accent: #2d7ab3; --bright: #4da8da; --deep: #1a4a7a; --line: #dce7f2;
+  --low: #1f6b45; --med: #b07d2b; --high: #b03a2e; --soft: #7fb3d5;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: 'Inter', system-ui, -apple-system, sans-serif; font-size: 15px; line-height: 1.625; }
+header.top { background: linear-gradient(135deg, #0a1628 0%, #14304d 60%, #1a4a7a 100%); color: #e8f0f8; padding: 34px 48px 0; }
+.kicker { font-size: 12px; letter-spacing: 4px; color: var(--bright); text-transform: uppercase; font-weight: 500; }
+h1 { font-size: 28px; font-weight: 800; margin: 6px 0 4px; letter-spacing: .2px; }
+.sub { color: #9db8cf; font-size: 13.5px; max-width: 980px; }
+nav.tabs { display: flex; gap: 4px; margin-top: 22px; flex-wrap: wrap; }
+nav.tabs button { background: transparent; border: none; color: #9db8cf; font: inherit; font-size: 13.5px; font-weight: 500; padding: 10px 18px; cursor: pointer; border-bottom: 3px solid transparent; transition: all .2s; }
+nav.tabs button:hover { color: #fff; }
+nav.tabs button.active { color: #fff; border-bottom-color: var(--bright); font-weight: 600; }
+main { max-width: 1180px; margin: 0 auto; padding: 30px 24px 60px; }
+section.pane { display: none; }
+section.pane.active { display: block; animation: fade .35s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.grid { display: grid; gap: 18px; }
+.kpis { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin-bottom: 22px; }
+.kpi { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 3px rgba(20,40,64,.05); }
+.kpi .label { font-size: 11.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.kpi .value { font-size: 26px; font-weight: 800; color: var(--deep); margin-top: 3px; }
+.kpi .note { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.kpi.hero { background: linear-gradient(135deg, #14304d, #1a4a7a); border: none; }
+.kpi.hero .value { color: #fff; }
+.kpi.hero .label, .kpi.hero .note { color: #9db8cf; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; box-shadow: 0 1px 3px rgba(20,40,64,.05); margin-bottom: 18px; }
+.card h2 { font-size: 16.5px; font-weight: 700; color: var(--deep); margin-bottom: 4px; }
+.card .hint { font-size: 12.5px; color: var(--muted); margin-bottom: 14px; }
+.chart { width: 100%; height: 380px; }
+.chart.tall { height: 440px; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+@media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
+.insight { background: #eef5fb; border-left: 4px solid var(--accent); border-radius: 8px; padding: 14px 18px; font-size: 13.5px; margin-bottom: 12px; }
+.insight b { color: var(--deep); }
+table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.data th { text-align: left; padding: 9px 10px; background: #f0f6fb; color: var(--deep); font-weight: 600; border-bottom: 2px solid var(--line); white-space: nowrap; }
+table.data td { padding: 8px 10px; border-bottom: 1px solid var(--line); }
+table.data tr:last-child td { border-bottom: none; }
+table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+.badge.best { background: #e3f2e8; color: var(--low); }
+.badge.final { background: #e8f1f8; color: var(--deep); }
+.cm { display: grid; grid-template-columns: auto 1fr 1fr; gap: 8px; max-width: 560px; }
+.cm .cell { border-radius: 10px; padding: 16px 14px; text-align: center; }
+.cm .cell .n { font-size: 24px; font-weight: 800; }
+.cm .cell .t { font-size: 11.5px; letter-spacing: .6px; text-transform: uppercase; font-weight: 600; opacity: .85; }
+.cm .hd { display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+.cm .tn { background: #e7f2ec; color: var(--low); }
+.cm .fp { background: #fbeae4; color: var(--high); }
+.cm .fn { background: #fdf3e4; color: var(--med); }
+.cm .tp { background: #e8f1f8; color: var(--deep); }
+.selrow { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.selrow button { background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 7px 16px; font: inherit; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; }
+.selrow button.active { background: var(--deep); border-color: var(--deep); color: #fff; }
+.bandcards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; margin-bottom: 22px; }
+.bandcard { border-radius: 12px; padding: 20px 22px; color: #fff; position: relative; overflow: hidden; }
+.bandcard .bt { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; font-weight: 700; opacity: .9; }
+.bandcard .bv { font-size: 34px; font-weight: 800; margin: 4px 0 2px; }
+.bandcard .bm { font-size: 12.5px; opacity: .92; line-height: 1.5; }
+.bandcard.low { background: linear-gradient(135deg, #1f6b45, #2d7ab3); }
+.bandcard.med { background: linear-gradient(135deg, #9a6b1f, #b07d2b); }
+.bandcard.high { background: linear-gradient(135deg, #7d2620, #b03a2e); }
+footer { max-width: 1180px; margin: 0 auto; padding: 0 24px 50px; color: var(--muted); font-size: 12.5px; }
+footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
+footer a:hover { text-decoration: underline; }
+.src { font-size: 11.5px; color: var(--muted); margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="kicker">Credit Risk · Machine Learning · Explainable AI</div>
+  <h1>Credit Risk Prediction &amp; Explainable AI — Interactive Dashboard</h1>
+  <div class="sub">Predicting credit-card default probability on the UCI Default of Credit Card Clients dataset
+    (29,965 clients) with a calibrated XGBoost pipeline — statistically validated, SHAP-explained, fairness-audited
+    and fully reproducible (98-check audit · CI re-runs the pipeline on every push).</div>
+  <nav class="tabs" id="tabs">
+    <button class="active" data-pane="overview">Overview</button>
+    <button data-pane="models">Models</button>
+    <button data-pane="threshold">Threshold &amp; Calibration</button>
+    <button data-pane="xai">Explainability</button>
+    <button data-pane="fairness">Fairness</button>
+    <button data-pane="bands">Risk Bands</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- ================= OVERVIEW ================= -->
+<section class="pane active" id="pane-overview">
+  <div class="grid kpis">
+    <div class="kpi hero"><div class="label">ROC-AUC (test)</div><div class="value" id="v-roc"></div><div class="note">calibrated XGBoost · n = 4,495</div></div>
+    <div class="kpi"><div class="label">PR-AUC (test)</div><div class="value" id="v-pr"></div><div class="note">base rate 22.1% → 0.221</div></div>
+    <div class="kpi"><div class="label">Brier score</div><div class="value" id="v-brier"></div><div class="note">lower = better calibrated</div></div>
+    <div class="kpi"><div class="label">Recall @ 0.26</div><div class="value" id="v-recall"></div><div class="note">of all defaulters caught</div></div>
+    <div class="kpi"><div class="label">Clients</div><div class="value" id="v-n"></div><div class="note">22.12% default rate</div></div>
+  </div>
+
+  <div class="two-col">
+    <div class="card">
+      <h2>Confusion matrix — operating point</h2>
+      <div class="hint">Threshold 0.26 tuned on validation F1 · test set n = 4,495 (994 defaulters)</div>
+      <div class="cm" id="cm"></div>
+      <div class="src">Diagonal = correct decisions. High band captures 34% of all defaulters with only 10.8% of the portfolio.</div>
+    </div>
+    <div class="card">
+      <h2>Statistical evidence before modeling</h2>
+      <div class="hint">Effect sizes (Cramér's V) — repayment recency gradient, Sep → Apr</div>
+      <div class="chart" id="ch-recency" style="height:300px"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Key findings</h2>
+    <div class="insight"><b>Payment behaviour dominates credit limits.</b> Repayment status in September (PAY_0) has the
+      strongest association with default (Cramér's V = 0.42, χ² = 5,363); credit-limit correlation is only −0.15.</div>
+    <div class="insight"><b>Delinquency compounds risk fast.</b> Clients paid duly in Sep default at <b>16.8%</b>; a 2-month
+      delay explodes the rate to <b>69.1%</b> — a 4.1× jump from a single status code.</div>
+    <div class="insight"><b>Calibration makes probabilities bankable.</b> Isotonic calibration moves Brier 0.135 → 0.134 and
+      aligns predicted vs observed default rates within ~1 point in every risk band.</div>
+  </div>
+</section>
+
+<!-- ================= MODELS ================= -->
+<section class="pane" id="pane-models">
+  <div class="card">
+    <h2>Six models, one champion</h2>
+    <div class="hint">Test-set performance · champion = isotonic-calibrated XGBoost at the tuned 0.26 threshold</div>
+    <div class="chart tall" id="ch-models"></div>
+  </div>
+  <div class="card">
+    <h2>Full metrics table</h2>
+    <div class="hint">Same test set scored exactly once for every model (n = 4,495)</div>
+    <div style="overflow-x:auto"><table class="data" id="tbl-models"></table></div>
+    <div class="src">Random Forest has the best raw PR-AUC (0.5695) but is uncalibrated; the calibrated XGBoost is chosen
+      because calibrated probabilities — not just rankings — drive the risk bands and the dashboard predictor.</div>
+  </div>
+</section>
+
+<!-- ================= THRESHOLD ================= -->
+<section class="pane" id="pane-threshold">
+  <div class="card">
+    <h2>Threshold sweep — the cost of catching defaulters</h2>
+    <div class="hint">Calibrated XGBoost on the hold-out test set · vertical line = chosen operating point 0.26</div>
+    <div class="chart tall" id="ch-threshold"></div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <h2>Why 0.26?</h2>
+      <div class="insight">The threshold was tuned to maximise <b>F1 on the validation set</b> (not the test set), then
+        applied to the test set exactly once — no test-set peeking.</div>
+      <div class="insight">At 0.26 the model catches <b>58.2%</b> of all defaulters at <b>50.8%</b> precision — in a
+        22%-prevalence portfolio that is a 2.3× lift over random selection.</div>
+      <div class="insight">Isotonic calibration was selected over sigmoid (Platt) by validation Brier score
+        (0.1340 vs 0.1352).</div>
+    </div>
+    <div class="card">
+      <h2>Calibration quality</h2>
+      <div class="hint">Brier score by model (lower is better)</div>
+      <div class="chart" id="ch-brier" style="height:300px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= XAI ================= -->
+<section class="pane" id="pane-xai">
+  <div class="two-col">
+    <div class="card">
+      <h2>What drives risk? — SHAP global importance</h2>
+      <div class="hint">Mean |SHAP value| — average impact on prediction magnitude · TreeExplainer on the tuned XGBoost</div>
+      <div class="chart tall" id="ch-shap"></div>
+    </div>
+    <div>
+      <div class="card">
+        <h2>The single strongest signal</h2>
+        <div class="insight"><b>ON_TIME_COUNT_6M</b> — the 6-month on-time payment streak — dominates every other feature
+          (mean |SHAP| 0.97, ~4× the runner-up). Recent behaviour beats demographics, limits and balances.</div>
+        <div class="insight"><b>PAY_0</b> (current-month repayment status) is the strongest raw feature; engineered
+          delinquency aggregates (MAX_DELINQUENCY_6M, WEIGHTED_DELINQUENCY) add further signal.</div>
+        <div class="insight">Demographics (SEX, MARRIAGE, EDUCATION) appear in the top 5 by magnitude but are an order
+          weaker than behaviour — and are audited separately in the Fairness tab.</div>
+      </div>
+      <div class="card">
+        <h2>Case study — a high-risk customer</h2>
+        <div class="hint">Local explanation (SHAP waterfall), true positive</div>
+        <div class="kpi hero" style="border-radius:12px"><div class="label">Calibrated default probability</div>
+          <div class="value" id="v-hirisk"></div>
+          <div class="note" id="v-hidrivers"></div></div>
+        <div class="src">Drivers pushing risk up: repeated late payments, 0 on-time streak, rising weighted delinquency.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FAIRNESS ================= -->
+<section class="pane" id="pane-fairness">
+  <div class="card">
+    <h2>Fairness audit — performance by group</h2>
+    <div class="hint">TPR = share of defaulters caught · FPR = share of good clients flagged · test set n = 4,495</div>
+    <div class="selrow" id="fsel">
+      <button class="active" data-dim="Gender">Gender</button>
+      <button data-dim="Education">Education</button>
+      <button data-dim="Age band">Age band</button>
+    </div>
+    <div class="chart tall" id="ch-fairness"></div>
+  </div>
+  <div class="card">
+    <h2>Reading the audit honestly</h2>
+    <div class="insight"><b>Observed performance gaps are modest.</b> TPR differs by ~2 points between genders
+      (57.4% vs 59.1%); the age bands 21–30 and 46+ are within 0.1 points of each other.</div>
+    <div class="insight"><b>Selection rate tracks base rates.</b> Males are flagged more often (29.2% vs 22.8%) — and males
+      in this dataset do default more (24.8% vs 20.4% observed). The model is reacting to behaviour, not identity.</div>
+    <div class="insight"><b>These are diagnostics, not verdicts.</b> Differences in a research dataset do not by themselves
+      establish discriminatory impact in a real lending institution — but monitoring them should be part of any deployment.</div>
+  </div>
+</section>
+
+<!-- ================= BANDS ================= -->
+<section class="pane" id="pane-bands">
+  <div class="bandcards">
+    <div class="bandcard low"><div class="bt">Low · p &lt; 0.20</div><div class="bv" id="b-low"></div><div class="bm" id="bm-low"></div></div>
+    <div class="bandcard med"><div class="bt">Medium · 0.20 – 0.50</div><div class="bv" id="b-med"></div><div class="bm" id="bm-med"></div></div>
+    <div class="bandcard high"><div class="bt">High · p ≥ 0.50</div><div class="bv" id="b-high"></div><div class="bm" id="bm-high"></div></div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <h2>Predicted vs observed — calibration holds</h2>
+      <div class="hint">Default rate per band · predicted (model mean) vs observed (ground truth)</div>
+      <div class="chart" id="ch-bands" style="height:340px"></div>
+    </div>
+    <div class="card">
+      <h2>Where the defaulters are</h2>
+      <div class="hint">Share of all actual defaulters captured by each band</div>
+      <div class="chart" id="ch-capture" style="height:340px"></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Portfolio view</h2>
+    <div class="hint">Client volume per band on the test set</div>
+    <div style="overflow-x:auto"><table class="data" id="tbl-bands"></table></div>
+    <div class="src">Bands are monotone by construction of the calibrated score: Low 10.9% → Medium 31.8% → High 69.7%
+      observed default. The High band is 10.8% of the portfolio yet captures 34% of defaulters.</div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  Source: Yeh, I. C., &amp; Lien, C. H. (2009). <i>The comparisons of data mining techniques for the predictive accuracy
+  of probability of default of credit card clients.</i> Expert Systems with Applications, 36(2), 2473–2480 —
+  UCI ML Repository, CC BY 4.0.<br>
+  Pipeline, audit and dashboard: <a href="https://github.com/avikroyarghya/credit-risk-xai" target="_blank" rel="noopener">github.com/avikroyarghya/credit-risk-xai</a>
+  · Interactive app: <code>streamlit run app/app.py</code> · Verify: <code>python audit.py</code> (98/98 checks)
+</footer>
+
+<script>
+const D = {"n_clients": 29965, "eval": {"threshold": 0.26, "test_roc_auc": 0.7872, "test_pr_auc": 0.5618, "test_brier": 0.1337, "test_recall": 0.5815, "confusion": [[2942, 559], [416, 578]]}, "recency": {"months": ["Sep (PAY_0)", "Aug (PAY_2)", "Jul (PAY_3)", "Jun (PAY_4)", "May (PAY_5)", "Apr (PAY_6)"], "v": [0.4231, 0.3403, 0.2956, 0.2793, 0.2706, 0.2507]}, "models": [{"model": "Random Forest", "threshold": 0.5, "accuracy": 0.8202, "precision": 0.6755, "recall": 0.3602, "f1": 0.4698, "roc_auc": 0.7871, "pr_auc": 0.5695, "brier": 0.1333}, {"model": "XGBoost (tuned)", "threshold": 0.5, "accuracy": 0.818, "precision": 0.6401, "recall": 0.4044, "f1": 0.4957, "roc_auc": 0.7867, "pr_auc": 0.5632, "brier": 0.1345}, {"model": "XGBoost (calibrated)", "threshold": 0.2599999999999999, "accuracy": 0.7831, "precision": 0.5084, "recall": 0.5815, "f1": 0.5425, "roc_auc": 0.7872, "pr_auc": 0.5618, "brier": 0.1337}, {"model": "Decision Tree", "threshold": 0.5, "accuracy": 0.8187, "precision": 0.6654, "recall": 0.3622, "f1": 0.4691, "roc_auc": 0.7689, "pr_auc": 0.5305, "brier": 0.1363}, {"model": "Logistic Regression", "threshold": 0.5, "accuracy": 0.8125, "precision": 0.6652, "recall": 0.3058, "f1": 0.419, "roc_auc": 0.76, "pr_auc": 0.5201, "brier": 0.1395}, {"model": "Dummy (prior)", "threshold": 0.5, "accuracy": 0.7789, "precision": 0.0, "recall": 0.0, "f1": 0.0, "roc_auc": 0.5, "pr_auc": 0.2211, "brier": 0.1722}], "sweep": [{"t": 0.05, "p": 0.2361376673040153, "r": 0.992964824120603, "f": 0.3815408379996138}, {"t": 0.055, "p": 0.2403611517813567, "r": 0.9899497487437184, "f": 0.3868054192028274}, {"t": 0.06, "p": 0.245198303816413, "r": 0.9879396984924624, "f": 0.3928856914468425}, {"t": 0.065, "p": 0.249298290380199, "r": 0.9819095477386934, "f": 0.3976393976393976}, {"t": 0.07, "p": 0.2542060988433228, "r": 0.971859296482412, "f": 0.4030006251302355}, {"t": 0.075, "p": 0.2641196013289036, "r": 0.9587939698492464, "f": 0.4141523768178858}, {"t": 0.08, "p": 0.267349260523322, "r": 0.9447236180904522, "f": 0.4167590334737309}, {"t": 0.085, "p": 0.2742365846427512, "r": 0.9296482412060302, "f": 0.4235347985347985}, {"t": 0.09, "p": 0.2802587003387742, "r": 0.914572864321608, "f": 0.429042904290429}, {"t": 0.095, "p": 0.2858505564387917, "r": 0.9035175879396984, "f": 0.4342995169082125}, {"t": 0.1, "p": 0.2898692810457516, "r": 0.8914572864321608, "f": 0.4374845869297164}, {"t": 0.105, "p": 0.295523392797038, "r": 0.8824120603015075, "f": 0.4427634896621281}, {"t": 0.11, "p": 0.3006944444444444, "r": 0.8703517587939699, "f": 0.4469677419354839}, {"t": 0.115, "p": 0.3076923076923077, "r": 0.8603015075376884, "f": 0.4532697908392904}, {"t": 0.12, "p": 0.311626195732156, "r": 0.8512562814070351, "f": 0.4562348505251818}, {"t": 0.125, "p": 0.3175981873111782, "r": 0.8452261306532663, "f": 0.4617073840241559}, {"t": 0.13, "p": 0.3225806451612903, "r": 0.8341708542713567, "f": 0.4652466367713004}, {"t": 0.135, "p": 0.325516693163752, "r": 0.8231155778894472, "f": 0.4665337510680717}, {"t": 0.14, "p": 0.3308853529171767, "r": 0.8150753768844221, "f": 0.4706906558328497}, {"t": 0.145, "p": 0.334866220735786, "r": 0.8050251256281407, "f": 0.4729849424269264}, {"t": 0.15, "p": 0.3416738567730802, "r": 0.7959798994974875, "f": 0.4781165107153637}, {"t": 0.155, "p": 0.3469387755102041, "r": 0.785929648241206, "f": 0.4813788858110188}, {"t": 0.16, "p": 0.3544245758826226, "r": 0.7768844221105528, "f": 0.4867758186397984}, {"t": 0.165, "p": 0.3599810785241248, "r": 0.7648241206030151, "f": 0.489546477967192}, {"t": 0.17, "p": 0.3658418243571082, "r": 0.7577889447236181, "f": 0.4934554973821989}, {"t": 0.175, "p": 0.3724899598393574, "r": 0.7457286432160805, "f": 0.4968195513893538}, {"t": 0.18, "p": 0.3824451410658307, "r": 0.735678391959799, "f": 0.5032657270539704}, {"t": 0.185, "p": 0.3877995642701525, "r": 0.7155778894472362, "f": 0.5030024726245143}, {"t": 0.19, "p": 0.3977207977207977, "r": 0.7015075376884422, "f": 0.5076363636363637}, {"t": 0.195, "p": 0.4100545124167171, "r": 0.6804020100502512, "f": 0.5117157974300831}, {"t": 0.2, "p": 0.4175615919140871, "r": 0.664321608040201, "f": 0.5128006206361521}, {"t": 0.205, "p": 0.4350473612990527, "r": 0.6462311557788945, "f": 0.5200161746866154}, {"t": 0.21, "p": 0.4454674220963173, "r": 0.6321608040201006, "f": 0.5226422933111757}, {"t": 0.215, "p": 0.455547391623806, "r": 0.6231155778894473, "f": 0.5263157894736842}, {"t": 0.22, "p": 0.4603174603174603, "r": 0.6120603015075377, "f": 0.5254529767040552}, {"t": 0.225, "p": 0.4662004662004662, "r": 0.6030150753768844, "f": 0.5258545135845749}, {"t": 0.23, "p": 0.4763432237369687, "r": 0.5969849246231156, "f": 0.5298840321141838}, {"t": 0.235, "p": 0.484029484029484, "r": 0.5939698492462312, "f": 0.5333935018050542}, {"t": 0.24, "p": 0.4895920066611157, "r": 0.5909547738693467, "f": 0.5355191256830601}, {"t": 0.245, "p": 0.4987168520102651, "r": 0.5859296482412061, "f": 0.5388170055452866}, {"t": 0.25, "p": 0.5030621172353456, "r": 0.5778894472361809, "f": 0.5378858746492049}, {"t": 0.255, "p": 0.5084444444444445, "r": 0.5748743718592965, "f": 0.539622641509434}, {"t": 0.26, "p": 0.5154545454545455, "r": 0.5698492462311557, "f": 0.5412887828162292}, {"t": 0.265, "p": 0.520112254443405, "r": 0.5587939698492462, "f": 0.5387596899224806}, {"t": 0.27, "p": 0.5230326295585412, "r": 0.5477386934673367, "f": 0.5351006381934217}, {"t": 0.275, "p": 0.5262645914396887, "r": 0.5437185929648242, "f": 0.5348492338111716}, {"t": 0.28, "p": 0.5294117647058824, "r": 0.5336683417085427, "f": 0.5315315315315315}, {"t": 0.285, "p": 0.5438413361169102, "r": 0.5236180904522613, "f": 0.5335381464413722}, {"t": 0.29, "p": 0.5444096133751306, "r": 0.5236180904522613, "f": 0.5338114754098361}, {"t": 0.295, "p": 0.5474683544303798, "r": 0.521608040201005, "f": 0.5342254246011323}, {"t": 0.3, "p": 0.5484558040468583, "r": 0.5175879396984925, "f": 0.532574974146846}, {"t": 0.305, "p": 0.5571273122959739, "r": 0.5145728643216081, "f": 0.5350052246603971}, {"t": 0.31, "p": 0.555921052631579, "r": 0.5095477386934674, "f": 0.5317252228631358}, {"t": 0.315, "p": 0.5573951434878587, "r": 0.507537688442211, "f": 0.5312993161493951}, {"t": 0.32, "p": 0.5587905935050392, "r": 0.5015075376884423, "f": 0.5286016949152542}, {"t": 0.325, "p": 0.5612244897959183, "r": 0.4974874371859296, "f": 0.527437400106553}, {"t": 0.33, "p": 0.565068493150685, "r": 0.4974874371859296, "f": 0.5291288081239979}, {"t": 0.335, "p": 0.5666666666666667, "r": 0.4954773869346733, "f": 0.528686327077748}, {"t": 0.34, "p": 0.5664335664335665, "r": 0.4884422110552764, "f": 0.5245547760388559}, {"t": 0.345, "p": 0.5710928319623971, "r": 0.4884422110552764, "f": 0.5265438786565547}, {"t": 0.35, "p": 0.5755053507728894, "r": 0.4864321608040201, "f": 0.5272331154684096}, {"t": 0.355, "p": 0.5757211538461539, "r": 0.4814070351758794, "f": 0.5243568691844553}, {"t": 0.36, "p": 0.57997557997558, "r": 0.4773869346733668, "f": 0.523704520396913}, {"t": 0.365, "p": 0.5805658056580566, "r": 0.4743718592964824, "f": 0.5221238938053098}, {"t": 0.37, "p": 0.5831265508684863, "r": 0.4723618090452261, "f": 0.5219322598556357}, {"t": 0.375, "p": 0.5840597758405978, "r": 0.471356783919598, "f": 0.5216907675194661}, {"t": 0.38, "p": 0.5844806007509387, "r": 0.4693467336683417, "f": 0.5206243032329989}, {"t": 0.385, "p": 0.5848101265822785, "r": 0.464321608040201, "f": 0.5176470588235295}, {"t": 0.39, "p": 0.5887611749680716, "r": 0.4633165829145728, "f": 0.5185601799775028}, {"t": 0.395, "p": 0.5905006418485238, "r": 0.4623115577889447, "f": 0.5186020293122886}, {"t": 0.4, "p": 0.5955786736020806, "r": 0.4603015075376884, "f": 0.5192743764172335}, {"t": 0.405, "p": 0.6, "r": 0.4582914572864321, "f": 0.5196581196581197}, {"t": 0.41, "p": 0.6007957559681698, "r": 0.4552763819095477, "f": 0.5180102915951973}, {"t": 0.415, "p": 0.6018766756032171, "r": 0.4512562814070351, "f": 0.5157955198161975}, {"t": 0.42, "p": 0.6084583901773534, "r": 0.4482412060301508, "f": 0.5162037037037037}, {"t": 0.425, "p": 0.6096551724137931, "r": 0.4442211055276382, "f": 0.513953488372093}, {"t": 0.43, "p": 0.6170212765957447, "r": 0.4371859296482412, "f": 0.5117647058823529}, {"t": 0.435, "p": 0.6182873730043541, "r": 0.4281407035175879, "f": 0.505938242280285}, {"t": 0.44, "p": 0.6240822320117474, "r": 0.4271356783919598, "f": 0.5071599045346062}, {"t": 0.445, "p": 0.6351145038167939, "r": 0.4180904522613065, "f": 0.5042424242424243}, {"t": 0.45, "p": 0.6338461538461538, "r": 0.414070351758794, "f": 0.5009118541033435}, {"t": 0.455, "p": 0.6342592592592593, "r": 0.4130653266331658, "f": 0.5003043213633597}, {"t": 0.46, "p": 0.6372549019607843, "r": 0.3919597989949748, "f": 0.4853764779091474}, {"t": 0.465, "p": 0.6470588235294118, "r": 0.3869346733668342, "f": 0.4842767295597484}, {"t": 0.47, "p": 0.6480541455160744, "r": 0.3849246231155779, "f": 0.4829760403530895}, {"t": 0.475, "p": 0.6467576791808873, "r": 0.3809045226130653, "f": 0.4794433902593295}, {"t": 0.48, "p": 0.6483704974271012, "r": 0.3798994974874372, "f": 0.4790874524714829}, {"t": 0.485, "p": 0.6624775583482945, "r": 0.3708542713567839, "f": 0.4755154639175257}, {"t": 0.49, "p": 0.6660550458715596, "r": 0.364824120603015, "f": 0.4714285714285714}, {"t": 0.495, "p": 0.6748582230623819, "r": 0.3587939698492462, "f": 0.468503937007874}, {"t": 0.5, "p": 0.689453125, "r": 0.3547738693467336, "f": 0.4684804246848042}, {"t": 0.505, "p": 0.6898608349900597, "r": 0.3487437185929648, "f": 0.4632843791722296}, {"t": 0.51, "p": 0.688622754491018, "r": 0.3467336683417085, "f": 0.4612299465240642}, {"t": 0.515, "p": 0.691358024691358, "r": 0.3376884422110552, "f": 0.4537474679270763}, {"t": 0.52, "p": 0.7075268817204301, "r": 0.3306532663316583, "f": 0.4506849315068493}, {"t": 0.525, "p": 0.7228381374722838, "r": 0.3276381909547738, "f": 0.4508990318118949}, {"t": 0.53, "p": 0.7228381374722838, "r": 0.3276381909547738, "f": 0.4508990318118949}, {"t": 0.535, "p": 0.7191011235955056, "r": 0.321608040201005, "f": 0.4444444444444444}, {"t": 0.54, "p": 0.7208237986270023, "r": 0.3165829145728643, "f": 0.4399441340782123}, {"t": 0.545, "p": 0.7208237986270023, "r": 0.3165829145728643, "f": 0.4399441340782123}, {"t": 0.55, "p": 0.7209302325581395, "r": 0.3115577889447236, "f": 0.4350877192982456}, {"t": 0.555, "p": 0.72, "r": 0.3075376884422111, "f": 0.4309859154929577}, {"t": 0.56, "p": 0.7193396226415094, "r": 0.3065326633165829, "f": 0.4298801973220578}, {"t": 0.565, "p": 0.720763723150358, "r": 0.3035175879396985, "f": 0.4271570014144271}, {"t": 0.57, "p": 0.7239709443099274, "r": 0.3005025125628141, "f": 0.4247159090909091}, {"t": 0.575, "p": 0.7257281553398058, "r": 0.3005025125628141, "f": 0.4250177683013504}, {"t": 0.58, "p": 0.7230392156862745, "r": 0.2964824120603015, "f": 0.420527441197434}, {"t": 0.585, "p": 0.7230392156862745, "r": 0.2964824120603015, "f": 0.420527441197434}, {"t": 0.59, "p": 0.7230392156862745, "r": 0.2964824120603015, "f": 0.420527441197434}, {"t": 0.595, "p": 0.7248157248157249, "r": 0.2964824120603015, "f": 0.4208273894436519}, {"t": 0.6, "p": 0.725925925925926, "r": 0.2954773869346733, "f": 0.42}, {"t": 0.605, "p": 0.7270471464019851, "r": 0.2944723618090452, "f": 0.4191702432045779}, {"t": 0.61, "p": 0.7275, "r": 0.2924623115577889, "f": 0.4172043010752688}, {"t": 0.615, "p": 0.7261306532663316, "r": 0.2904522613065327, "f": 0.4149318018664752}, {"t": 0.62, "p": 0.7265822784810126, "r": 0.2884422110552764, "f": 0.4129496402877697}, {"t": 0.625, "p": 0.7282051282051282, "r": 0.2854271356783919, "f": 0.4101083032490974}, {"t": 0.63, "p": 0.727979274611399, "r": 0.2824120603015075, "f": 0.4069514844315713}, {"t": 0.635, "p": 0.7284595300261096, "r": 0.2804020100502513, "f": 0.4049346879535558}, {"t": 0.64, "p": 0.7328042328042328, "r": 0.2783919597989949, "f": 0.403495994173343}, {"t": 0.645, "p": 0.739946380697051, "r": 0.2773869346733668, "f": 0.4035087719298245}, {"t": 0.65, "p": 0.7445652173913043, "r": 0.2753768844221105, "f": 0.4020542920029347}, {"t": 0.655, "p": 0.7479224376731302, "r": 0.271356783919598, "f": 0.3982300884955752}, {"t": 0.66, "p": 0.7550432276657061, "r": 0.2633165829145729, "f": 0.390461997019374}, {"t": 0.665, "p": 0.7543859649122807, "r": 0.2592964824120603, "f": 0.3859386686611817}, {"t": 0.67, "p": 0.7607361963190185, "r": 0.2492462311557789, "f": 0.3754731264193792}, {"t": 0.675, "p": 0.7585139318885449, "r": 0.2462311557788944, "f": 0.3717754172989377}, {"t": 0.68, "p": 0.7620578778135049, "r": 0.2381909547738693, "f": 0.3629402756508422}, {"t": 0.685, "p": 0.7612903225806451, "r": 0.2371859296482412, "f": 0.3616858237547892}, {"t": 0.69, "p": 0.7707509881422925, "r": 0.1959798994974874, "f": 0.3125}, {"t": 0.695, "p": 0.7768595041322314, "r": 0.1889447236180904, "f": 0.3039611964430073}, {"t": 0.7, "p": 0.7937219730941704, "r": 0.1778894472361809, "f": 0.2906403940886699}, {"t": 0.705, "p": 0.7918552036199095, "r": 0.1758793969849246, "f": 0.2878289473684211}, {"t": 0.71, "p": 0.8078817733990148, "r": 0.164824120603015, "f": 0.2737896494156928}, {"t": 0.715, "p": 0.7936507936507936, "r": 0.1507537688442211, "f": 0.2533783783783784}, {"t": 0.72, "p": 0.7934782608695652, "r": 0.1467336683417085, "f": 0.2476675148430873}, {"t": 0.725, "p": 0.7967032967032966, "r": 0.1457286432160804, "f": 0.2463891248937978}, {"t": 0.73, "p": 0.8114285714285714, "r": 0.1427135678391959, "f": 0.2427350427350427}, {"t": 0.735, "p": 0.815028901734104, "r": 0.1417085427135678, "f": 0.2414383561643835}, {"t": 0.74, "p": 0.825, "r": 0.1326633165829145, "f": 0.2285714285714285}, {"t": 0.745, "p": 0.825503355704698, "r": 0.1236180904522613, "f": 0.215034965034965}, {"t": 0.75, "p": 0.8201438848920863, "r": 0.114572864321608, "f": 0.201058201058201}, {"t": 0.755, "p": 0.8515625, "r": 0.1095477386934673, "f": 0.1941228851291184}, {"t": 0.76, "p": 0.8738738738738738, "r": 0.0974874371859296, "f": 0.1754068716094032}, {"t": 0.765, "p": 0.8653846153846154, "r": 0.0904522613065326, "f": 0.1637852593266606}, {"t": 0.77, "p": 0.8842105263157894, "r": 0.0844221105527638, "f": 0.1541284403669724}, {"t": 0.775, "p": 0.9, "r": 0.0814070351758794, "f": 0.1493087557603686}, {"t": 0.78, "p": 0.9186046511627908, "r": 0.0793969849246231, "f": 0.1461609620721554}, {"t": 0.785, "p": 0.926829268292683, "r": 0.0763819095477387, "f": 0.1411327762302692}, {"t": 0.79, "p": 0.935897435897436, "r": 0.0733668341708542, "f": 0.1360671015843429}, {"t": 0.795, "p": 0.9333333333333332, "r": 0.0703517587939698, "f": 0.1308411214953271}, {"t": 0.8, "p": 0.9428571428571428, "r": 0.0663316582914572, "f": 0.1239436619718309}, {"t": 0.805, "p": 0.9420289855072465, "r": 0.0653266331658291, "f": 0.1221804511278195}, {"t": 0.81, "p": 0.9333333333333332, "r": 0.0562814070351758, "f": 0.1061611374407583}, {"t": 0.815, "p": 0.925925925925926, "r": 0.050251256281407, "f": 0.0953288846520495}, {"t": 0.82, "p": 0.9245283018867924, "r": 0.0492462311557788, "f": 0.0935114503816793}, {"t": 0.825, "p": 0.9245283018867924, "r": 0.0492462311557788, "f": 0.0935114503816793}, {"t": 0.83, "p": 0.9148936170212766, "r": 0.04321608040201, "f": 0.0825335892514395}, {"t": 0.835, "p": 0.9302325581395348, "r": 0.0402010050251256, "f": 0.0770712909441233}, {"t": 0.84, "p": 0.9583333333333334, "r": 0.0231155778894472, "f": 0.0451422963689892}, {"t": 0.845, "p": 1.0, "r": 0.0211055276381909, "f": 0.0413385826771653}, {"t": 0.85, "p": 1.0, "r": 0.0211055276381909, "f": 0.0413385826771653}, {"t": 0.855, "p": 1.0, "r": 0.0201005025125628, "f": 0.0394088669950738}, {"t": 0.86, "p": 1.0, "r": 0.0201005025125628, "f": 0.0394088669950738}, {"t": 0.865, "p": 1.0, "r": 0.0190954773869346, "f": 0.0374753451676528}, {"t": 0.87, "p": 1.0, "r": 0.0130653266331658, "f": 0.0257936507936507}, {"t": 0.875, "p": 1.0, "r": 0.0090452261306532, "f": 0.0179282868525896}, {"t": 0.88, "p": 1.0, "r": 0.0090452261306532, "f": 0.0179282868525896}, {"t": 0.885, "p": 1.0, "r": 0.0090452261306532, "f": 0.0179282868525896}, {"t": 0.89, "p": 1.0, "r": 0.0090452261306532, "f": 0.0179282868525896}, {"t": 0.895, "p": 1.0, "r": 0.0090452261306532, "f": 0.0179282868525896}, {"t": 0.9, "p": 1.0, "r": 0.0090452261306532, "f": 0.0179282868525896}, {"t": 0.905, "p": 1.0, "r": 0.0070351758793969, "f": 0.0139720558882235}, {"t": 0.91, "p": 1.0, "r": 0.0070351758793969, "f": 0.0139720558882235}, {"t": 0.915, "p": 1.0, "r": 0.0060301507537688, "f": 0.0119880119880119}, {"t": 0.92, "p": 1.0, "r": 0.0050251256281407, "f": 0.01}, {"t": 0.925, "p": 1.0, "r": 0.0050251256281407, "f": 0.01}, {"t": 0.93, "p": 1.0, "r": 0.0050251256281407, "f": 0.01}, {"t": 0.935, "p": 1.0, "r": 0.0040201005025125, "f": 0.008008008008008}, {"t": 0.94, "p": 1.0, "r": 0.0030150753768844, "f": 0.0060120240480961}, {"t": 0.945, "p": 1.0, "r": 0.0020100502512562, "f": 0.0040120361083249}, {"t": 0.95, "p": 1.0, "r": 0.0020100502512562, "f": 0.0040120361083249}], "shap": [{"f": "ON_TIME_COUNT_6M", "v": 0.9696394}, {"f": "PAY_0", "v": 0.2569927}, {"f": "MARRIAGE", "v": 0.14531088}, {"f": "SEX", "v": 0.14529757}, {"f": "EDUCATION", "v": 0.11927684}, {"f": "MAX_DELINQUENCY_6M", "v": 0.10913615}, {"f": "WEIGHTED_DELINQUENCY", "v": 0.082337655}, {"f": "AVG_PAY_6M", "v": 0.079609}, {"f": "LIMIT_BAL", "v": 0.07825902}, {"f": "LATE_PAYMENT_COUNT_6M", "v": 0.06455107}, {"f": "BILL_AMT1", "v": 0.062157664}, {"f": "AVG_BILL_6M", "v": 0.0533978}, {"f": "PAY_AMT1", "v": 0.050526123}, {"f": "UTILIZATION_2", "v": 0.048646964}, {"f": "PAY_6", "v": 0.03733708}, {"f": "PAY_2", "v": 0.034923136}, {"f": "UTILIZATION_1", "v": 0.027358668}, {"f": "TOTAL_PAY_6M", "v": 0.02593631}, {"f": "UTILIZATION_MAX", "v": 0.02541357}, {"f": "PAY_AMT2", "v": 0.023271428}, {"f": "BILL_TREND", "v": 0.020225327}, {"f": "BILL_TREND_RATIO", "v": 0.017926093}, {"f": "PAY_TO_BILL_RATIO", "v": 0.01742917}, {"f": "PAY_5", "v": 0.017428871}, {"f": "BILL_AMT2", "v": 0.016311519}, {"f": "UTILIZATION_3", "v": 0.015861562}, {"f": "PAY_AMT4", "v": 0.015413892}, {"f": "AGE", "v": 0.013711788}, {"f": "PAY_AMT6", "v": 0.013557055}, {"f": "UTILIZATION_LATEST", "v": 0.0112703135}, {"f": "BILL_AMT3", "v": 0.011116843}, {"f": "BILL_AMT5", "v": 0.009465265}, {"f": "UTILIZATION_6", "v": 0.009161289}, {"f": "PAY_AMT3", "v": 0.009063553}, {"f": "UTILIZATION_MEAN", "v": 0.007419216}, {"f": "BILL_AMT4", "v": 0.006766492}, {"f": "PAY_3", "v": 0.005965068}, {"f": "PAY_4", "v": 0.005670624}, {"f": "BILL_AMT6", "v": 0.00508189}, {"f": "PAY_AMT5", "v": 0.004872904}, {"f": "UTILIZATION_5", "v": 0.0044995644}, {"f": "UTILIZATION_4", "v": 0.0037848868}], "fairness": [{"dimension": "Gender", "group": "Female", "n": 2721, "tpr": 0.574, "fpr": 0.1389, "obs": 0.2036}, {"dimension": "Gender", "group": "Male", "n": 1774, "tpr": 0.5909, "fpr": 0.1934, "obs": 0.248}, {"dimension": "Education", "group": "Graduate school", "n": 1577, "tpr": 0.5575, "fpr": 0.1395, "obs": 0.182}, {"dimension": "Education", "group": "High school", "n": 766, "tpr": 0.588, "fpr": 0.1764, "obs": 0.282}, {"dimension": "Education", "group": "Others", "n": 64, "tpr": 0.1667, "fpr": 0.0517, "obs": 0.0938}, {"dimension": "Education", "group": "University", "n": 2088, "tpr": 0.5979, "fpr": 0.174, "obs": 0.2323}, {"dimension": "Age band", "group": "21–30", "n": 1630, "tpr": 0.6184, "fpr": 0.1676, "obs": 0.2202}, {"dimension": "Age band", "group": "31–45", "n": 2149, "tpr": 0.5367, "fpr": 0.1494, "obs": 0.2089}, {"dimension": "Age band", "group": "46+", "n": 716, "tpr": 0.6183, "fpr": 0.1736, "obs": 0.2598}], "bands": [{"band": "Low", "range": "0% – 20%", "n": 2961, "share": 0.6587, "pred": 0.1098, "obs": 0.1087, "cap": 0.3239}, {"band": "Medium", "range": "20% – 50%", "n": 1049, "share": 0.2334, "pred": 0.3176, "obs": 0.3184, "cap": 0.336}, {"band": "High", "range": ">= 50%", "n": 485, "share": 0.1079, "pred": 0.6872, "obs": 0.6969, "cap": 0.34}], "xai": {"high_risk_probability": 0.9329170823097229, "high_risk_top_drivers": ["ON_TIME_COUNT_6M", "PAY_0", "LATE_PAYMENT_COUNT_6M", "WEIGHTED_DELINQUENCY"]}};
+
+/* ---------- tabs ---------- */
+document.getElementById('tabs').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('nav.tabs button').forEach(x => x.classList.toggle('active', x === b));
+  document.querySelectorAll('section.pane').forEach(p => p.classList.toggle('active', p.id === 'pane-' + b.dataset.pane));
+  Object.values(CHARTS).forEach(c => c.resize());
+});
+
+/* ---------- helpers ---------- */
+const fmt = (x, d = 3) => Number(x).toFixed(d);
+const pct = (x, d = 1) => (100 * x).toFixed(d) + '%';
+const CHARTS = {};
+function mk(id) { const c = echarts.init(document.getElementById(id)); CHARTS[id] = c; return c; }
+window.addEventListener('resize', () => Object.values(CHARTS).forEach(c => c.resize()));
+const AX = { axisLine: { lineStyle: { color: '#5a7a96' } }, axisLabel: { color: '#5a7a96', fontSize: 11.5 },
+             splitLine: { lineStyle: { color: '#dce7f2' } } };
+const TT = { trigger: 'axis', backgroundColor: '#ffffff', borderColor: '#dce7f2', textStyle: { color: '#142840', fontSize: 12.5 } };
+
+/* ---------- overview ---------- */
+document.getElementById('v-roc').textContent = fmt(D.eval.test_roc_auc, 4);
+document.getElementById('v-pr').textContent = fmt(D.eval.test_pr_auc, 4);
+document.getElementById('v-brier').textContent = fmt(D.eval.test_brier, 4);
+document.getElementById('v-recall').textContent = pct(D.eval.test_recall, 1);
+document.getElementById('v-n').textContent = D.n_clients.toLocaleString();
+
+const cm = D.eval.confusion;
+document.getElementById('cm').innerHTML = `
+  <div></div><div class="hd">Predicted good</div><div class="hd">Predicted default</div>
+  <div class="hd">Actual good</div><div class="cell tn"><div class="n">${cm[0][0].toLocaleString()}</div><div class="t">true negative</div></div>
+  <div class="cell fp"><div class="n">${cm[0][1].toLocaleString()}</div><div class="t">false positive</div></div>
+  <div class="hd">Actual default</div><div class="cell fn"><div class="n">${cm[1][0].toLocaleString()}</div><div class="t">false negative</div></div>
+  <div class="cell tp"><div class="n">${cm[1][1].toLocaleString()}</div><div class="t">true positive</div></div>`;
+
+mk('ch-recency').setOption({
+  grid: { left: 8, right: 16, top: 10, bottom: 26, containLabel: true },
+  tooltip: TT,
+  xAxis: { type: 'category', data: D.recency.months, ...AX },
+  yAxis: { type: 'value', max: 0.5, ...AX },
+  series: [{ type: 'bar', data: D.recency.v, barWidth: '52%',
+    itemStyle: { color: p => p.dataIndex === 0 ? '#b03a2e' : '#2d7ab3', borderRadius: [5,5,0,0] },
+    label: { show: true, position: 'top', color: '#142840', fontWeight: 600, fontSize: 11.5,
+             formatter: p => p.value.toFixed(2) } }]
+});
+
+/* ---------- models ---------- */
+const niceOrder = ['Dummy (prior)', 'Logistic Regression', 'Decision Tree', 'Random Forest', 'XGBoost (tuned)', 'XGBoost (calibrated)'];
+const mdl = niceOrder.map(m => D.models.find(r => r.model === m));
+mk('ch-models').setOption({
+  grid: { left: 8, right: 16, top: 42, bottom: 56, containLabel: true },
+  legend: { top: 0, textStyle: { color: '#5a7a96', fontSize: 12 } },
+  tooltip: { ...TT, valueFormatter: v => Number(v).toFixed(4) },
+  xAxis: { type: 'category', data: mdl.map(r => r.model), ...AX, axisLabel: { ...AX.axisLabel, interval: 0, rotate: 18 } },
+  yAxis: { type: 'value', min: 0, max: 0.9, ...AX },
+  series: [
+    { name: 'ROC-AUC', type: 'bar', data: mdl.map(r => r.roc_auc), itemStyle: { color: '#2d7ab3', borderRadius: [4,4,0,0] }, barGap: '12%' },
+    { name: 'PR-AUC', type: 'bar', data: mdl.map(r => r.pr_auc), itemStyle: { color: '#4da8da', borderRadius: [4,4,0,0] } },
+    { name: 'F1 @ threshold', type: 'bar', data: mdl.map(r => r.f1), itemStyle: { color: '#7fb3d5', borderRadius: [4,4,0,0] } }]
+});
+
+document.getElementById('tbl-models').innerHTML =
+  '<tr><th>Model</th><th class="num">Threshold</th><th class="num">Accuracy</th><th class="num">Precision</th>' +
+  '<th class="num">Recall</th><th class="num">F1</th><th class="num">ROC-AUC</th><th class="num">PR-AUC</th><th class="num">Brier</th><th></th></tr>' +
+  mdl.map(r => `<tr><td>${r.model}</td><td class="num">${r.threshold.toFixed(2)}</td>` +
+    [r.accuracy, r.precision, r.recall, r.f1, r.roc_auc, r.pr_auc, r.brier].map(v => `<td class="num">${v.toFixed(4)}</td>`).join('') +
+    `<td>${r.model === 'XGBoost (calibrated)' ? '<span class="badge best">champion</span>' :
+        (r.model === 'Random Forest' ? '<span class="badge final">best raw PR-AUC</span>' : '')}</td></tr>`).join('');
+
+/* ---------- threshold ---------- */
+mk('ch-threshold').setOption({
+  grid: { left: 8, right: 16, top: 42, bottom: 40, containLabel: true },
+  legend: { top: 0, textStyle: { color: '#5a7a96', fontSize: 12 } },
+  tooltip: { ...TT, valueFormatter: v => Number(v).toFixed(4) },
+  xAxis: { type: 'value', min: 0, max: 1, name: 'threshold', nameLocation: 'middle', nameGap: 28, ...AX },
+  yAxis: { type: 'value', min: 0, max: 1, ...AX },
+  series: [
+    { name: 'Precision', type: 'line', smooth: true, showSymbol: false, data: D.sweep.map(r => [r.t, r.p]), lineStyle: { color: '#2d7ab3', width: 2.5 } },
+    { name: 'Recall', type: 'line', smooth: true, showSymbol: false, data: D.sweep.map(r => [r.t, r.r]), lineStyle: { color: '#1f6b45', width: 2.5 } },
+    { name: 'F1', type: 'line', smooth: true, showSymbol: false, data: D.sweep.map(r => [r.t, r.f]), lineStyle: { color: '#b07d2b', width: 2.5 },
+      markLine: { symbol: 'none', label: { formatter: 'chosen · 0.26', color: '#b03a2e', fontWeight: 600 },
+        lineStyle: { color: '#b03a2e', type: 'dashed', width: 1.5 }, data: [{ xAxis: D.eval.threshold }] } }]
+});
+
+mk('ch-brier').setOption({
+  grid: { left: 8, right: 16, top: 10, bottom: 56, containLabel: true },
+  tooltip: { ...TT, valueFormatter: v => Number(v).toFixed(4) },
+  xAxis: { type: 'category', data: mdl.map(r => r.model), ...AX, axisLabel: { ...AX.axisLabel, interval: 0, rotate: 18 } },
+  yAxis: { type: 'value', min: 0.1, max: 0.18, ...AX },
+  series: [{ type: 'bar', data: mdl.map(r => r.brier), barWidth: '52%',
+    itemStyle: { color: p => mdl[p.dataIndex].model.startsWith('XGBoost') ? '#1a4a7a' : '#7fb3d5', borderRadius: [4,4,0,0] },
+    label: { show: true, position: 'top', color: '#142840', fontSize: 11, formatter: p => p.value.toFixed(4) } }]
+});
+
+/* ---------- xai ---------- */
+const sh = D.shap.slice(0, 12).reverse();
+mk('ch-shap').setOption({
+  grid: { left: 8, right: 56, top: 10, bottom: 30, containLabel: true },
+  tooltip: { ...TT, valueFormatter: v => Number(v).toFixed(4) },
+  xAxis: { type: 'value', ...AX },
+  yAxis: { type: 'category', data: sh.map(r => r.f), ...AX, axisLabel: { ...AX.axisLabel, fontSize: 11 } },
+  series: [{ type: 'bar', data: sh.map(r => r.v), barWidth: '62%',
+    itemStyle: { color: p => p.dataIndex === sh.length - 1 ? '#b03a2e' : '#2d7ab3', borderRadius: [0,5,5,0] },
+    label: { show: true, position: 'right', color: '#5a7a96', fontSize: 11, formatter: p => p.value.toFixed(3) } }]
+});
+
+document.getElementById('v-hirisk').textContent = pct(D.xai.high_risk_probability, 1);
+document.getElementById('v-hidrivers').textContent = 'Top drivers: ' + D.xai.high_risk_top_drivers.join(' · ');
+
+/* ---------- fairness ---------- */
+const fcharts = {};
+function fairnessChart(dim) {
+  const rows = D.fairness.filter(r => r.dimension === dim);
+  fcharts['ch-fairness'].setOption({
+    grid: { left: 8, right: 16, top: 42, bottom: 36, containLabel: true },
+    legend: { top: 0, textStyle: { color: '#5a7a96', fontSize: 12 } },
+    tooltip: { ...TT, valueFormatter: v => Number(v).toFixed(4) },
+    xAxis: { type: 'category', data: rows.map(r => r.group), ...AX, axisLabel: { ...AX.axisLabel, interval: 0 } },
+    yAxis: { type: 'value', max: 0.8, ...AX },
+    series: [
+      { name: 'TPR (recall)', type: 'bar', data: rows.map(r => r.tpr), itemStyle: { color: '#1a4a7a', borderRadius: [4,4,0,0] }, barGap: '10%' },
+      { name: 'FPR', type: 'bar', data: rows.map(r => r.fpr), itemStyle: { color: '#b03a2e', borderRadius: [4,4,0,0] } },
+      { name: 'Observed default rate', type: 'bar', data: rows.map(r => r.obs), itemStyle: { color: '#7fb3d5', borderRadius: [4,4,0,0] } }]
+  }, true);
+}
+fcharts['ch-fairness'] = mk('ch-fairness');
+fairnessChart('Gender');
+document.getElementById('fsel').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  document.querySelectorAll('#fsel button').forEach(x => x.classList.toggle('active', x === b));
+  fairnessChart(b.dataset.dim);
+});
+
+/* ---------- bands ---------- */
+const bands = D.bands;
+document.getElementById('b-low').textContent = pct(bands[0].obs, 1);
+document.getElementById('bm-low').innerHTML = `${bands[0].n.toLocaleString()} clients · ${pct(bands[0].share, 1)} of portfolio<br>captures ${pct(bands[0].cap, 1)} of defaulters`;
+document.getElementById('b-med').textContent = pct(bands[1].obs, 1);
+document.getElementById('bm-med').innerHTML = `${bands[1].n.toLocaleString()} clients · ${pct(bands[1].share, 1)} of portfolio<br>captures ${pct(bands[1].cap, 1)} of defaulters`;
+document.getElementById('b-high').textContent = pct(bands[2].obs, 1);
+document.getElementById('bm-high').innerHTML = `${bands[2].n.toLocaleString()} clients · ${pct(bands[2].share, 1)} of portfolio<br>captures ${pct(bands[2].cap, 1)} of defaulters`;
+
+mk('ch-bands').setOption({
+  grid: { left: 8, right: 16, top: 42, bottom: 30, containLabel: true },
+  legend: { top: 0, textStyle: { color: '#5a7a96', fontSize: 12 } },
+  tooltip: { ...TT, valueFormatter: v => Number(v).toFixed(4) },
+  xAxis: { type: 'category', data: bands.map(b => b.band), ...AX },
+  yAxis: { type: 'value', max: 0.8, ...AX },
+  series: [
+    { name: 'Predicted rate', type: 'bar', data: bands.map(b => b.pred), barWidth: '34%',
+      itemStyle: { color: '#7fb3d5', borderRadius: [4,4,0,0] } },
+    { name: 'Observed rate', type: 'bar', data: bands.map(b => b.obs), barWidth: '34%',
+      itemStyle: { color: p => ['#1f6b45', '#b07d2b', '#b03a2e'][p.dataIndex], borderRadius: [4,4,0,0] } }]
+});
+
+mk('ch-capture').setOption({
+  grid: { left: 8, right: 16, top: 42, bottom: 30, containLabel: true },
+  tooltip: { ...TT, valueFormatter: v => Number(v).toFixed(4) },
+  xAxis: { type: 'category', data: bands.map(b => b.band), ...AX },
+  yAxis: { type: 'value', max: 0.4, ...AX },
+  series: [{ type: 'bar', data: bands.map(b => b.cap), barWidth: '48%',
+    itemStyle: { color: p => ['#1f6b45', '#b07d2b', '#b03a2e'][p.dataIndex], borderRadius: [4,4,0,0] },
+    label: { show: true, position: 'top', color: '#142840', fontWeight: 600, formatter: p => pct(p.value, 1) } }]
+});
+
+document.getElementById('tbl-bands').innerHTML =
+  '<tr><th>Band</th><th>Score range</th><th class="num">Clients</th><th class="num">Portfolio share</th>' +
+  '<th class="num">Predicted rate</th><th class="num">Observed rate</th><th class="num">Defaulters captured</th></tr>' +
+  bands.map(b => `<tr><td><b>${b.band}</b></td><td>${b.range}</td><td class="num">${b.n.toLocaleString()}</td>` +
+    `<td class="num">${pct(b.share, 1)}</td><td class="num">${pct(b.pred, 1)}</td><td class="num">${pct(b.obs, 1)}</td>` +
+    `<td class="num">${pct(b.cap, 1)}</td></tr>`).join('');
+</script>
+</body>
+</html>
